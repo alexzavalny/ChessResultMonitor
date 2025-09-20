@@ -105,6 +105,7 @@ GEM
       faraday-multipart (~> 1.0)
       virtus (~> 2.0)
     thread_safe (0.3.6)
+    timeout (0.4.3)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (3.2.0)
@@ -135,6 +136,7 @@ DEPENDENCIES
   rubocop (~> 1.50)
   rufus-scheduler (~> 3.8)
   telegram-bot-ruby (~> 0.15)
+  timeout (~> 0.3)
   vcr (~> 6.1)
   webmock (~> 3.18)
 

@@ -3,8 +3,8 @@ require_relative '../models/tournament_state'
 # Change detection system for tournament updates
 class ChangeDetector
   def initialize
-    @logger = Logger.new(STDOUT)
-    @logger.level = Logger::INFO
+    @logger = ::Logger.new(STDOUT)
+    @logger.level = ::Logger::INFO
   end
 
   def detect_changes(old_state, new_state)

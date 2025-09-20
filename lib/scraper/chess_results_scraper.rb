@@ -9,8 +9,8 @@ class ChessResultsScraper
   include HTTParty
   
   def initialize
-    @logger = Logger.new(STDOUT)
-    @logger.level = Logger::INFO
+    @logger = ::Logger.new(STDOUT)
+    @logger.level = ::Logger::INFO
   end
 
   def fetch_tournament_data
@@ -28,7 +28,7 @@ class ChessResultsScraper
       else
         raise "HTTP request failed with status #{response.code}: #{response.message}"
       end
-    rescue Net::TimeoutError, Net::ReadTimeout => e
+    rescue Timeout::Error, Net::ReadTimeout => e
       retries += 1
       if retries <= MAX_RETRIES
         @logger.warn("Request timeout, retrying (#{retries}/#{MAX_RETRIES}): #{e.message}")

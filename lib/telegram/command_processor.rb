@@ -5,8 +5,8 @@ require_relative '../../config/tournament_config'
 # Command processor for Telegram bot
 class CommandProcessor
   def initialize
-    @logger = Logger.new(STDOUT)
-    @logger.level = Logger::INFO
+    @logger = ::Logger.new(STDOUT)
+    @logger.level = ::Logger::INFO
     @scraper = ChessResultsScraper.new
   end
 
@@ -42,7 +42,7 @@ class CommandProcessor
       
       @logger.info("Status command completed successfully for chat #{chat_id}")
       
-    rescue Net::TimeoutError, Net::ReadTimeout => e
+    rescue Timeout::Error, Net::ReadTimeout => e
       @logger.error("Timeout error in status command: #{e.message}")
       bot.api.send_message(
         chat_id: chat_id,

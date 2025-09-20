@@ -6,8 +6,8 @@ require_relative '../../config/bot_config'
 # Main Telegram bot handler
 class BotHandler
   def initialize
-    @logger = Logger.new(STDOUT)
-    @logger.level = Logger::INFO
+    @logger = ::Logger.new(STDOUT)
+    @logger.level = ::Logger::INFO
     @command_processor = CommandProcessor.new
     @subscribed_chats = Set.new
     load_subscribed_chats

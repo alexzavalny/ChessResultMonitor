@@ -6,7 +6,7 @@ class MessageFormatter
   def self.format_table(tournament_state)
     return "❌ No tournament data available" if tournament_state.nil? || tournament_state.empty?
 
-    header = "🏆 *#{tournament_state.tournament_name}*\n"
+    header = "🏆 *#{escape_markdown(tournament_state.tournament_name)}*\n"
     header += "📅 Last updated: #{format_time(tournament_state.last_updated)}\n"
     header += "👥 Players: #{tournament_state.player_count}\n\n"
 
@@ -34,27 +34,27 @@ class MessageFormatter
     changes.each do |change|
       case change[:type]
       when :initial_data
-        summary << "🎯 #{change[:message]} (#{change[:players].size} players)"
+        summary << "🎯 #{escape_markdown(change[:message])} (#{change[:players].size} players)"
       when :data_lost
-        summary << "⚠️ #{change[:message]}"
+        summary << "⚠️ #{escape_markdown(change[:message])}"
       when :new_player
-        summary << "➕ #{change[:message]}"
+        summary << "➕ #{escape_markdown(change[:message])}"
       when :removed_player
-        summary << "➖ #{change[:message]}"
+        summary << "➖ #{escape_markdown(change[:message])}"
       when :points_changed
-        summary << "📈 #{change[:message]}"
+        summary << "📈 #{escape_markdown(change[:message])}"
       when :result_changed
-        summary << "🏆 #{change[:message]}"
+        summary << "🏆 #{escape_markdown(change[:message])}"
       when :club_changed
-        summary << "🏢 #{change[:message]}"
+        summary << "🏢 #{escape_markdown(change[:message])}"
       when :board_changed
-        summary << "🔢 #{change[:message]}"
+        summary << "🔢 #{escape_markdown(change[:message])}"
       when :player_count_changed
-        summary << "👥 #{change[:message]}"
+        summary << "👥 #{escape_markdown(change[:message])}"
       when :tournament_name_changed
-        summary << "🏷️ #{change[:message]}"
+        summary << "🏷️ #{escape_markdown(change[:message])}"
       else
-        summary << "ℹ️ #{change[:message]}"
+        summary << "ℹ️ #{escape_markdown(change[:message])}"
       end
     end
 
@@ -74,7 +74,7 @@ class MessageFormatter
     end
 
     status = "✅ *Status: Active*\n"
-    status += "🏆 Tournament: *#{tournament_state.tournament_name}*\n"
+    status += "🏆 Tournament: *#{escape_markdown(tournament_state.tournament_name)}*\n"
     status += "📅 Last updated: #{format_time(tournament_state.last_updated)}\n"
     status += "👥 Players: #{tournament_state.player_count}\n\n"
     status += "Use /status to see the current table anytime!"
@@ -101,10 +101,10 @@ class MessageFormatter
 
   def self.format_player_row(player)
     board = (player.board_number || "").to_s.ljust(2)
-    name = truncate_string(player.player_name || "", 30)
-    club = truncate_string(player.club_city || "", 22)
+    name = truncate_string(escape_markdown(player.player_name || ""), 30)
+    club = truncate_string(escape_markdown(player.club_city || ""), 22)
     points = (player.points || 0).to_s.ljust(3)
-    result = (player.result || "").to_s.ljust(6)
+    result = escape_markdown((player.result || "").to_s.ljust(6))
 
     "#{board} | #{name} | #{club} | #{points} | #{result}"
   end
@@ -120,5 +120,12 @@ class MessageFormatter
     return "Unknown" if time.nil?
     
     time.strftime("%Y-%m-%d %H:%M:%S UTC")
+  end
+
+  def self.escape_markdown(text)
+    return "" if text.nil?
+    
+    # Escape special Markdown characters
+    text.to_s.gsub(/([_*\[\]()~`>#+=|{}.!-])/, '\\\\\1')
   end
 end

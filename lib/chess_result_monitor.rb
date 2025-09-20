@@ -8,8 +8,8 @@ require_relative '../config/tournament_config'
 # Main monitoring application
 class ChessResultMonitor
   def initialize
-    @logger = Logger.new(STDOUT)
-    @logger.level = Logger::INFO
+    @logger = ::Logger.new(STDOUT)
+    @logger.level = ::Logger::INFO
     @scraper = ChessResultsScraper.new
     @change_detector = ChangeDetector.new
     @bot_handler = BotHandler.new
