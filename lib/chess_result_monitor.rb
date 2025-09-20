@@ -87,6 +87,11 @@ class ChessResultMonitor
     end
   end
 
+  def add_subscriber(chat_id)
+    @subscribers.add(chat_id)
+    @logger.info("Added subscriber: #{chat_id} (total: #{@subscribers.size})")
+  end
+
   private
 
   def start_monitoring_loop
@@ -105,11 +110,6 @@ class ChessResultMonitor
         raise e  # Kill the application for debugging
       end
     end
-  end
-
-  def add_subscriber(chat_id)
-    @subscribers.add(chat_id)
-    @logger.info("Added subscriber: #{chat_id} (total: #{@subscribers.size})")
   end
 
   def process_changes(changes, new_state)

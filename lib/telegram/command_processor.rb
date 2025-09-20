@@ -110,10 +110,20 @@ class CommandProcessor
       
     rescue StandardError => e
       @logger.error("Error in subscribe command: #{e.message}")
+      @logger.error(e.backtrace.join("\n"))
+      
+      # Truncate error message for Telegram
+      error_msg = e.message.to_s
+      error_msg = error_msg[0, 200] + "..." if error_msg.length > 200
+      
+      backtrace_msg = e.backtrace.first(3).join("\n")
+      backtrace_msg = backtrace_msg[0, 300] + "..." if backtrace_msg.length > 300
+      
       bot.api.send_message(
         chat_id: chat_id,
-        text: "❌ *Subscription Failed*\n\nSorry, there was an error adding you to the subscriber list. Please try again later."
+        text: "❌ *Subscription Failed*\n\nError: #{error_msg}\n\nBacktrace:\n#{backtrace_msg}"
       )
+      raise e  # Re-raise to kill the application for debugging
     end
   end
 
