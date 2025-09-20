@@ -6,7 +6,7 @@ require_relative '../../config/tournament_config'
 class CommandProcessor
   def initialize
     @logger = ::Logger.new(STDOUT)
-    @logger.level = ::Logger::INFO
+    @logger.level = ::Logger::DEBUG
     @scraper = ChessResultsScraper.new
   end
 

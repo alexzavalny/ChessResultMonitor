@@ -10,7 +10,7 @@ class ChessResultsScraper
   
   def initialize
     @logger = ::Logger.new(STDOUT)
-    @logger.level = ::Logger::INFO
+    @logger.level = ::Logger::DEBUG
   end
 
   def fetch_tournament_data
@@ -101,15 +101,27 @@ class ChessResultsScraper
 
   def find_results_table(doc)
     # Look for the main results table with player data
-    # The table typically has headers like "Rd.Bo", "Name", "Club/City", "Pts", "Res."
+    # The table typically has headers like "Rd.", "Bo.", "Name", "Club/City", "Pts", "Res."
     
     tables = doc.css('table')
+    @logger.debug("Found #{tables.length} tables in the document")
     
-    tables.find do |table|
+    tables.each_with_index do |table, index|
       headers = table.css('th, td').map(&:text).map(&:strip)
-      # Check if this looks like a results table
-      headers.any? { |h| h.include?('Rd.Bo') || h.include?('Name') || h.include?('Pts') }
+      @logger.debug("Table #{index + 1} headers: #{headers.first(10).join(', ')}")
+      
+      # Check if this looks like a results table with the specific headers we expect
+      if headers.any? { |h| h.include?('Rd.') } && 
+         headers.any? { |h| h.include?('Bo.') } && 
+         headers.any? { |h| h.include?('Name') } && 
+         headers.any? { |h| h.include?('Pts.') }
+        @logger.debug("Found results table at index #{index + 1}")
+        return table
+      end
     end
+    
+    @logger.warn("No results table found with expected headers")
+    nil
   end
 
   def parse_table_rows(table)
@@ -117,52 +129,81 @@ class ChessResultsScraper
     
     # Skip header row and parse data rows
     rows = table.css('tr')[1..-1] || []
+    @logger.debug("Found #{rows.length} data rows to parse")
     
     rows.each_with_index do |row, index|
       cells = row.css('td')
+      @logger.debug("Row #{index + 1}: #{cells.length} cells - #{cells.map(&:text).map(&:strip).join(' | ')}")
+      
       next if cells.empty?
+      
+      # Only process rows that look like actual player data (11 cells with proper structure)
+      # Skip tournament metadata rows (usually 2 cells or very long single cells)
+      if cells.length < 8 || cells.length > 15
+        @logger.debug("Skipped row #{index + 1} - wrong number of cells (#{cells.length})")
+        next
+      end
+      
+      # Check if this looks like a player row (should have numeric first few cells)
+      first_cell = cells[0]&.text&.strip
+      if first_cell.nil? || first_cell.empty? || !first_cell.match?(/^\d+$/)
+        @logger.debug("Skipped row #{index + 1} - doesn't start with round number")
+        next
+      end
       
       begin
         player = parse_player_row(cells, index + 1)
-        players << player if player
+        if player
+          players << player
+          @logger.debug("Successfully parsed player: #{player.player_name}")
+        else
+          @logger.debug("Skipped row #{index + 1} - no valid player data")
+        end
       rescue StandardError => e
         @logger.warn("Error parsing row #{index + 1}: #{e.message}")
+        @logger.debug("Row content: #{cells.map(&:text).map(&:strip).join(' | ')}")
         next
       end
     end
     
+    @logger.debug("Total players parsed: #{players.length}")
     players
   end
 
   def parse_player_row(cells, row_number)
-    # Expected cell structure based on the HTML sample:
-    # [0] - Rd.Bo (round/board number)
-    # [1] - SNo (starting number)
-    # [2] - Name
-    # [3] - Club/City
-    # [4] - Pts (points)
-    # [5] - Res. (result)
+    # Actual table structure based on the image:
+    # [0] - Rd. (Round)
+    # [1] - Bo. (Board)
+    # [2] - SNo (Starting Number)
+    # [3] - (Unnamed column with "IV")
+    # [4] - Name
+    # [5] - Rtg (Rating)
+    # [6] - Club/City
+    # [7] - Pts. (Points)
+    # [8] - Res. (Result)
     
-    return nil if cells.size < 4
+    return nil if cells.size < 6
     
-    # Extract board number (first cell)
-    board_number = cells[0]&.text&.strip
+    # Extract board number (Bo. column - index 1)
+    board_number = cells[1]&.text&.strip
     
-    # Extract player name (usually in the 3rd cell)
-    player_name = cells[2]&.text&.strip
+    # Extract player name (Name column - index 4)
+    player_name = cells[4]&.text&.strip
     
-    # Extract club/city (usually in the 4th cell)
-    club_city = cells[3]&.text&.strip
+    # Extract club/city (Club/City column - index 6)
+    club_city = cells[6]&.text&.strip
     
-    # Extract points (usually in the 5th cell)
-    points_text = cells[4]&.text&.strip
+    # Extract points (Pts. column - index 7)
+    points_text = cells[7]&.text&.strip
     points = parse_points(points_text)
     
-    # Extract result (usually in the 6th cell)
-    result = cells[5]&.text&.strip
+    # Extract result (Res. column - index 8)
+    result = cells[8]&.text&.strip
     
     # Skip if essential data is missing
     return nil if player_name.nil? || player_name.empty?
+    
+    @logger.debug("Parsed player: Board=#{board_number}, Name=#{player_name}, Club=#{club_city}, Points=#{points}, Result=#{result}")
     
     Player.new(
       board_number: board_number,
