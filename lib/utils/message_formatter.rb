@@ -129,11 +129,26 @@ class MessageFormatter
     board = (player.board_number || "").to_s.ljust(2)
     name = (player.player_name || "").ljust(column_widths[:name])
     points = (player.points || 0).to_s.ljust(column_widths[:points])
-    result = (player.result || "").ljust(column_widths[:result])
+    result = format_result_with_emoji(player.result || "").ljust(column_widths[:result])
 
     row = "#{board} | #{name} | #{points} | #{result}"
     puts "DEBUG: Row: '#{row}' (name length: #{name.length}, expected: #{column_widths[:name]})"
     row
+  end
+
+  def self.format_result_with_emoji(result)
+    case result.to_s.strip
+    when "1"
+      "🏆"
+    when "0"
+      "❌"
+    when "0.5"
+      "🤝"
+    when ""
+      ""
+    else
+      result.to_s
+    end
   end
 
   def self.format_player_row(player)
