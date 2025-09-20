@@ -72,6 +72,7 @@ class CommandProcessor
     welcome_message = "🎯 *Welcome to Chess Tournament Monitor!*\n\n"
     welcome_message += "Hello #{user_name}! I'll monitor the chess tournament and notify you of any updates.\n\n"
     welcome_message += "*Available commands:*\n"
+    welcome_message += "• `subscribe` - Subscribe to tournament updates\n"
     welcome_message += "• `status` - Get current tournament table\n"
     welcome_message += "• `help` - Show this help message\n\n"
     welcome_message += "I'll automatically send you updates every time the tournament table changes!"
@@ -84,11 +85,44 @@ class CommandProcessor
     @logger.info("Start command processed for user #{user_name} (chat #{chat_id})")
   end
 
+  def handle_subscribe_command(message, bot, monitor)
+    chat_id = message.chat.id
+    user_name = message.from.first_name || "User"
+    
+    begin
+      # Add the chat ID to the monitor's subscriber list
+      monitor.add_subscriber(chat_id)
+      
+      subscribe_message = "✅ *Successfully Subscribed!*\n\n"
+      subscribe_message += "Hello #{user_name}! You're now subscribed to tournament updates.\n\n"
+      subscribe_message += "I'll send you notifications whenever the tournament table changes with:\n"
+      subscribe_message += "• New results\n"
+      subscribe_message += "• New players\n"
+      subscribe_message += "• Any other updates\n\n"
+      subscribe_message += "Use `status` to see the current table anytime!"
+      
+      bot.api.send_message(
+        chat_id: chat_id,
+        text: subscribe_message
+      )
+      
+      @logger.info("Subscribe command processed for user #{user_name} (chat #{chat_id})")
+      
+    rescue StandardError => e
+      @logger.error("Error in subscribe command: #{e.message}")
+      bot.api.send_message(
+        chat_id: chat_id,
+        text: "❌ *Subscription Failed*\n\nSorry, there was an error adding you to the subscriber list. Please try again later."
+      )
+    end
+  end
+
   def handle_help_command(message, bot)
     chat_id = message.chat.id
     
     help_message = "🤖 *Chess Tournament Monitor Help*\n\n"
     help_message += "*Commands:*\n"
+    help_message += "• `subscribe` - Subscribe to tournament updates\n"
     help_message += "• `status` - Get the current tournament standings\n"
     help_message += "• `help` - Show this help message\n\n"
     help_message += "*About:*\n"
@@ -108,6 +142,7 @@ class CommandProcessor
     
     unknown_message = "❓ *Unknown command*\n\n"
     unknown_message += "I didn't understand that. Here are the available commands:\n\n"
+    unknown_message += "• `subscribe` - Subscribe to tournament updates\n"
     unknown_message += "• `status` - Get current tournament table\n"
     unknown_message += "• `help` - Show help information\n\n"
     unknown_message += "Just type `status` to see the current tournament standings!"

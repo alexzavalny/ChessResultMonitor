@@ -10,8 +10,8 @@ class MessageFormatter
     header += "📅 Last updated: #{format_time(tournament_state.last_updated)}\n"
     header += "👥 Players: #{tournament_state.player_count}\n\n"
 
-    table_header = "Bd | Player Name                    | Club/City              | Pts | Result\n"
-    table_header += "---|--------------------------------|------------------------|-----|--------\n"
+    table_header = "Bd | Player Name                    | Pts | Result\n"
+    table_header += "---|--------------------------------|-----|--------\n"
 
     table_rows = tournament_state.players.map do |player|
       format_player_row(player)
@@ -99,11 +99,10 @@ class MessageFormatter
   def self.format_player_row(player)
     board = (player.board_number || "").to_s.ljust(2)
     name = truncate_string(player.player_name || "", 30)
-    club = truncate_string(player.club_city || "", 22)
     points = (player.points || 0).to_s.ljust(3)
     result = (player.result || "").to_s.ljust(6)
 
-    "#{board} | #{name} | #{club} | #{points} | #{result}"
+    "#{board} | #{name} | #{points} | #{result}"
   end
 
   def self.truncate_string(str, max_length)

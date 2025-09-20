@@ -13,14 +13,15 @@ class BotHandler
     load_subscribed_chats
   end
 
-  def start_bot
+  def start_bot(monitor = nil)
     @logger.info("Starting Telegram bot...")
+    @monitor = monitor
     
     Telegram::Bot::Client.run(BOT_TOKEN) do |bot|
       @bot = bot
       
       bot.listen do |message|
-        handle_message(message)
+        handle_message(message, @monitor)
       end
     end
   rescue StandardError => e
@@ -29,12 +30,13 @@ class BotHandler
     raise e  # Kill the application for debugging
   end
 
-  def send_notification_to_subscribers(message_text)
-    return if @subscribed_chats.empty?
+  def send_notification_to_subscribers(message_text, subscribers = nil)
+    target_chats = subscribers || @subscribed_chats
+    return if target_chats.empty?
     
-    @logger.info("Sending notification to #{@subscribed_chats.size} subscribers")
+    @logger.info("Sending notification to #{target_chats.size} subscribers")
     
-    @subscribed_chats.each do |chat_id|
+    target_chats.each do |chat_id|
       begin
         @bot.api.send_message(
           chat_id: chat_id,
@@ -44,7 +46,7 @@ class BotHandler
       rescue StandardError => e
         @logger.error("Failed to send notification to chat #{chat_id}: #{e.message}")
         # Remove invalid chat IDs
-        @subscribed_chats.delete(chat_id) if e.message.include?('chat not found')
+        target_chats.delete(chat_id) if e.message.include?('chat not found')
       end
     end
   end
@@ -74,7 +76,7 @@ class BotHandler
 
   private
 
-  def handle_message(message)
+  def handle_message(message, monitor = nil)
     return unless message.is_a?(Telegram::Bot::Types::Message)
     return unless message.text
 
@@ -83,10 +85,6 @@ class BotHandler
 
     @logger.info("Received message from chat #{chat_id}: #{message.text}")
 
-    # Add chat to subscribers if not already subscribed
-    @subscribed_chats.add(chat_id) unless @subscribed_chats.include?(chat_id)
-    save_subscribed_chats
-
     case text
     when '/start'
       @command_processor.handle_start_command(message, @bot)
@@ -94,6 +92,12 @@ class BotHandler
       @command_processor.handle_help_command(message, @bot)
     when 'status'
       @command_processor.handle_status_command(message, @bot)
+    when 'subscribe'
+      if monitor
+        @command_processor.handle_subscribe_command(message, @bot, monitor)
+      else
+        @command_processor.handle_unknown_command(message, @bot)
+      end
     else
       @command_processor.handle_unknown_command(message, @bot)
     end

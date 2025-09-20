@@ -1,3 +1,4 @@
+require 'set'
 require_relative 'scraper/chess_results_scraper'
 require_relative 'utils/change_detector'
 require_relative 'utils/message_formatter'
@@ -16,6 +17,7 @@ class ChessResultMonitor
     @current_state = nil
     @state_file = 'data/state_cache.json'
     @running = false
+    @subscribers = Set.new
     
     # Ensure data directory exists
     FileUtils.mkdir_p('data') unless Dir.exist?('data')
@@ -31,7 +33,7 @@ class ChessResultMonitor
     # Start the bot in a separate thread
     @bot_thread = Thread.new do
       begin
-        @bot_handler.start_bot
+        @bot_handler.start_bot(self)
       rescue StandardError => e
         @logger.error("Bot thread error: #{e.message}")
         @running = false
@@ -105,6 +107,11 @@ class ChessResultMonitor
     end
   end
 
+  def add_subscriber(chat_id)
+    @subscribers.add(chat_id)
+    @logger.info("Added subscriber: #{chat_id} (total: #{@subscribers.size})")
+  end
+
   def process_changes(changes, new_state)
     @logger.info("Processing #{changes.size} changes")
     
@@ -112,7 +119,7 @@ class ChessResultMonitor
     changes_message = MessageFormatter.format_changes({ has_changes: true, changes: changes })
     
     # Send notification to all subscribers
-    @bot_handler.send_notification_to_subscribers(changes_message)
+    @bot_handler.send_notification_to_subscribers(changes_message, @subscribers)
     
     # Log the changes
     changes.each do |change|
