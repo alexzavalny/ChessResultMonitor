@@ -46,6 +46,9 @@ class CommandProcessor
         )
       end
       
+      # Send additional game info message
+      send_game_info_message(bot, chat_id, tournament_state)
+      
       @logger.info("Status command completed successfully for chat #{chat_id}")
       
     rescue Timeout::Error, Net::ReadTimeout => e
@@ -166,6 +169,50 @@ class CommandProcessor
   end
 
   private
+
+  def send_game_info_message(bot, chat_id, tournament_state)
+    return if tournament_state.nil? || tournament_state.empty?
+    
+    # Extract game number and table number from tournament data
+    game_number = extract_game_number(tournament_state)
+    table_number = extract_table_number(tournament_state)
+    
+    if game_number && table_number
+      game_info = "🎮 Game #{game_number} - table number #{table_number}"
+      
+      bot.api.send_message(
+        chat_id: chat_id,
+        text: game_info
+      )
+      
+      @logger.info("Sent game info: #{game_info} to chat #{chat_id}")
+    else
+      @logger.debug("Could not extract game info from tournament state")
+    end
+  rescue StandardError => e
+    @logger.error("Error sending game info message: #{e.message}")
+    # Don't raise here, just log the error
+  end
+
+  def extract_game_number(tournament_state)
+    # Extract game number from the highest round number in the tournament data
+    return nil if tournament_state.players.empty?
+    
+    # Get the highest round number from all players
+    max_round = tournament_state.players.map { |p| p.round_number.to_i }.max
+    max_round
+  end
+
+  def extract_table_number(tournament_state)
+    # Extract table number from the last player's board number
+    return nil if tournament_state.players.empty?
+    
+    # Get the board number from the last player in the list
+    last_player = tournament_state.players.last
+    return nil unless last_player
+    
+    last_player.board_number.to_i
+  end
 
   def send_long_message(bot, chat_id, long_text)
     # Split the message into chunks that fit within Telegram's limits

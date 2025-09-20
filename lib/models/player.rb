@@ -1,8 +1,8 @@
 # Player data model for chess tournament
 class Player
-  attr_accessor :board_number, :player_name, :club_city, :points, :result, :opponent, :fide_id, :rating
+  attr_accessor :board_number, :player_name, :club_city, :points, :result, :opponent, :fide_id, :rating, :round_number
 
-  def initialize(board_number: nil, player_name: nil, club_city: nil, points: nil, result: nil, opponent: nil, fide_id: nil, rating: nil)
+  def initialize(board_number: nil, player_name: nil, club_city: nil, points: nil, result: nil, opponent: nil, fide_id: nil, rating: nil, round_number: nil)
     @board_number = board_number
     @player_name = player_name
     @club_city = club_city
@@ -11,6 +11,7 @@ class Player
     @opponent = opponent
     @fide_id = fide_id
     @rating = rating
+    @round_number = round_number
   end
 
   def to_hash
@@ -22,7 +23,8 @@ class Player
       result: @result,
       opponent: @opponent,
       fide_id: @fide_id,
-      rating: @rating
+      rating: @rating,
+      round_number: @round_number
     }
   end
 

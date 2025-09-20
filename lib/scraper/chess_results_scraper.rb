@@ -211,7 +211,8 @@ class ChessResultsScraper
       club_city: club_city,
       points: points,
       result: result,
-      opponent: nil # Not available in this table format
+      opponent: nil, # Not available in this table format
+      round_number: cells[0]&.text&.strip&.to_i # Round number from first column
     )
   end
 
