@@ -65,17 +65,6 @@ class ChangeDetector
       end
     end
 
-    # Find removed players
-    old_players.each do |old_player|
-      unless new_players_hash.key?(old_player.player_name)
-        changes << {
-          type: :removed_player,
-          message: "Player removed: #{old_player.player_name}",
-          player: old_player
-        }
-      end
-    end
-
     # Find updated players
     old_players.each do |old_player|
       new_player = new_players_hash[old_player.player_name]
@@ -91,19 +80,6 @@ class ChangeDetector
   def detect_individual_player_changes(old_player, new_player)
     changes = []
 
-    # Check for point changes
-    if old_player.points != new_player.points
-      changes << {
-        type: :points_changed,
-        message: "#{new_player.player_name}: #{old_player.points} → #{new_player.points} points",
-        old_player: old_player,
-        new_player: new_player,
-        field: :points,
-        old_value: old_player.points,
-        new_value: new_player.points
-      }
-    end
-
     # Check for result changes
     if old_player.result != new_player.result
       changes << {
@@ -114,19 +90,6 @@ class ChangeDetector
         field: :result,
         old_value: old_player.result,
         new_value: new_player.result
-      }
-    end
-
-    # Check for club/city changes
-    if old_player.club_city != new_player.club_city
-      changes << {
-        type: :club_changed,
-        message: "#{new_player.player_name}: club changed from '#{old_player.club_city}' to '#{new_player.club_city}'",
-        old_player: old_player,
-        new_player: new_player,
-        field: :club_city,
-        old_value: old_player.club_city,
-        new_value: new_player.club_city
       }
     end
 
@@ -159,16 +122,6 @@ class ChangeDetector
       }
     end
 
-    # Check for tournament name changes
-    if old_state.tournament_name != new_state.tournament_name
-      changes << {
-        type: :tournament_name_changed,
-        message: "Tournament name changed from '#{old_state.tournament_name}' to '#{new_state.tournament_name}'",
-        old_name: old_state.tournament_name,
-        new_name: new_state.tournament_name
-      }
-    end
-
     changes
   end
 
@@ -185,20 +138,13 @@ class ChangeDetector
         summary << "⚠️ #{change[:message]}"
       when :new_player
         summary << "➕ #{change[:message]}"
-      when :removed_player
-        summary << "➖ #{change[:message]}"
       when :points_changed
         summary << "📈 #{change[:message]}"
       when :result_changed
         summary << "🏆 #{change[:message]}"
-      when :club_changed
-        summary << "🏢 #{change[:message]}"
       when :board_changed
         summary << "🔢 #{change[:message]}"
       when :player_count_changed
-        summary << "👥 #{change[:message]}"
-      when :tournament_name_changed
-        summary << "🏷️ #{change[:message]}"
       else
         summary << "ℹ️ #{change[:message]}"
       end

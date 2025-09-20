@@ -48,8 +48,6 @@ class MessageFormatter
         summary << "⚠️ #{escape_markdown(change[:message])}"
       when :new_player
         summary << "➕ #{escape_markdown(change[:message])}"
-      when :removed_player
-        summary << "➖ #{escape_markdown(change[:message])}"
       when :points_changed
         summary << "📈 #{escape_markdown(change[:message])}"
       when :result_changed

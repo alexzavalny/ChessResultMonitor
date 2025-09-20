@@ -115,11 +115,23 @@ class ChessResultMonitor
   def process_changes(changes, new_state)
     @logger.info("Processing #{changes.size} changes")
     
+    # Check if we should send the full table
+    significant_changes = changes.any? do |change|
+      [:new_player, :removed_player, :result_changed, :points_changed, :player_count_changed].include?(change[:type])
+    end
+    
     # Format the changes message
     changes_message = MessageFormatter.format_changes({ has_changes: true, changes: changes })
     
     # Send notification to all subscribers
     @bot_handler.send_notification_to_subscribers(changes_message, @subscribers)
+    
+    # If significant changes, also send the full table
+    if significant_changes
+      @logger.info("Significant changes detected, sending full table to subscribers")
+      full_table = MessageFormatter.format_table(new_state)
+      @bot_handler.send_notification_to_subscribers(full_table, @subscribers)
+    end
     
     # Log the changes
     changes.each do |change|
