@@ -19,8 +19,7 @@ class CommandProcessor
       # Send immediate acknowledgment
       bot.api.send_message(
         chat_id: chat_id,
-        text: "🔄 Fetching current tournament table...",
-        parse_mode: 'Markdown'
+        text: "🔄 Fetching current tournament table..."
       )
       
       # Fetch current tournament data
@@ -29,14 +28,21 @@ class CommandProcessor
       # Format and send the table
       formatted_table = MessageFormatter.format_table(tournament_state)
       
+      @logger.debug("Formatted table length: #{formatted_table.length}")
+      @logger.debug("Formatted table content:")
+      @logger.debug("=" * 50)
+      @logger.debug(formatted_table)
+      @logger.debug("=" * 50)
+      
       # Split message if too long (Telegram has a 4096 character limit)
       if formatted_table.length > 4000
+        @logger.debug("Message too long (#{formatted_table.length} chars), splitting into chunks")
         send_long_message(bot, chat_id, formatted_table)
       else
+        @logger.debug("Sending single message (#{formatted_table.length} chars)")
         bot.api.send_message(
           chat_id: chat_id,
-          text: formatted_table,
-          parse_mode: 'Markdown'
+          text: formatted_table
         )
       end
       
@@ -46,16 +52,16 @@ class CommandProcessor
       @logger.error("Timeout error in status command: #{e.message}")
       bot.api.send_message(
         chat_id: chat_id,
-        text: MessageFormatter.format_error_message(:timeout_error),
-        parse_mode: 'Markdown'
+        text: MessageFormatter.format_error_message(:timeout_error)
       )
     rescue StandardError => e
       @logger.error("Error in status command: #{e.message}")
+      @logger.error(e.backtrace.join("\n"))
       bot.api.send_message(
         chat_id: chat_id,
-        text: MessageFormatter.format_error_message(:unknown_error, e.message),
-        parse_mode: 'Markdown'
+        text: MessageFormatter.format_error_message(:unknown_error, e.message)
       )
+      raise e  # Re-raise to kill the application for debugging
     end
   end
 
@@ -72,8 +78,7 @@ class CommandProcessor
     
     bot.api.send_message(
       chat_id: chat_id,
-      text: welcome_message,
-      parse_mode: 'Markdown'
+      text: welcome_message
     )
     
     @logger.info("Start command processed for user #{user_name} (chat #{chat_id})")
@@ -92,8 +97,7 @@ class CommandProcessor
     
     bot.api.send_message(
       chat_id: chat_id,
-      text: help_message,
-      parse_mode: 'Markdown'
+      text: help_message
     )
     
     @logger.info("Help command processed for chat #{chat_id}")
@@ -110,8 +114,7 @@ class CommandProcessor
     
     bot.api.send_message(
       chat_id: chat_id,
-      text: unknown_message,
-      parse_mode: 'Markdown'
+      text: unknown_message
     )
     
     @logger.info("Unknown command processed for chat #{chat_id}: #{message.text}")

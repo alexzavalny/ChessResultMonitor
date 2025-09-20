@@ -26,7 +26,7 @@ class BotHandler
   rescue StandardError => e
     @logger.error("Bot error: #{e.message}")
     @logger.error(e.backtrace.join("\n"))
-    raise
+    raise e  # Kill the application for debugging
   end
 
   def send_notification_to_subscribers(message_text)
@@ -38,8 +38,7 @@ class BotHandler
       begin
         @bot.api.send_message(
           chat_id: chat_id,
-          text: message_text,
-          parse_mode: 'Markdown'
+          text: message_text
         )
         @logger.debug("Notification sent to chat #{chat_id}")
       rescue StandardError => e
@@ -59,17 +58,17 @@ class BotHandler
       else
         @bot.api.send_message(
           chat_id: chat_id,
-          text: formatted_message,
-          parse_mode: 'Markdown'
+          text: formatted_message
         )
       end
     rescue StandardError => e
       @logger.error("Failed to send status to chat #{chat_id}: #{e.message}")
+      @logger.error(e.backtrace.join("\n"))
       @bot.api.send_message(
         chat_id: chat_id,
-        text: MessageFormatter.format_error_message(:unknown_error, e.message),
-        parse_mode: 'Markdown'
+        text: MessageFormatter.format_error_message(:unknown_error, e.message)
       )
+      raise e  # Kill the application for debugging
     end
   end
 
@@ -106,12 +105,13 @@ class BotHandler
     begin
       @bot.api.send_message(
         chat_id: message.chat.id,
-        text: "❌ Sorry, something went wrong. Please try again later.",
-        parse_mode: 'Markdown'
+        text: "❌ Sorry, something went wrong. Please try again later."
       )
     rescue StandardError
       # Ignore if we can't send error message
     end
+    
+    raise e  # Kill the application for debugging
   end
 
   def send_long_message(chat_id, long_text)

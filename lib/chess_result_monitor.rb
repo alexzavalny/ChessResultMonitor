@@ -81,6 +81,7 @@ class ChessResultMonitor
     rescue StandardError => e
       @logger.error("Error during update check: #{e.message}")
       @logger.error(e.backtrace.join("\n"))
+      raise e  # Kill the application for debugging
     end
   end
 
@@ -99,9 +100,7 @@ class ChessResultMonitor
       rescue StandardError => e
         @logger.error("Error in monitoring loop: #{e.message}")
         @logger.error(e.backtrace.join("\n"))
-        
-        # Continue monitoring even if there's an error
-        sleep(MONITORING_INTERVAL)
+        raise e  # Kill the application for debugging
       end
     end
   end

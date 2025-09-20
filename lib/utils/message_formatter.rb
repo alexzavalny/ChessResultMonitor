@@ -6,21 +6,18 @@ class MessageFormatter
   def self.format_table(tournament_state)
     return "❌ No tournament data available" if tournament_state.nil? || tournament_state.empty?
 
-    header = "🏆 *#{escape_markdown(tournament_state.tournament_name)}*\n"
+    header = "🏆 #{tournament_state.tournament_name}\n"
     header += "📅 Last updated: #{format_time(tournament_state.last_updated)}\n"
     header += "👥 Players: #{tournament_state.player_count}\n\n"
 
-    table_header = "```\n"
-    table_header += "Bd | Player Name                    | Club/City              | Pts | Result\n"
+    table_header = "Bd | Player Name                    | Club/City              | Pts | Result\n"
     table_header += "---|--------------------------------|------------------------|-----|--------\n"
 
     table_rows = tournament_state.players.map do |player|
       format_player_row(player)
     end
 
-    table_footer = "```"
-
-    header + table_header + table_rows.join("\n") + "\n" + table_footer
+    header + table_header + table_rows.join("\n")
   end
 
   def self.format_changes(changes_data)
@@ -101,10 +98,10 @@ class MessageFormatter
 
   def self.format_player_row(player)
     board = (player.board_number || "").to_s.ljust(2)
-    name = truncate_string(escape_markdown(player.player_name || ""), 30)
-    club = truncate_string(escape_markdown(player.club_city || ""), 22)
+    name = truncate_string(player.player_name || "", 30)
+    club = truncate_string(player.club_city || "", 22)
     points = (player.points || 0).to_s.ljust(3)
-    result = escape_markdown((player.result || "").to_s.ljust(6))
+    result = (player.result || "").to_s.ljust(6)
 
     "#{board} | #{name} | #{club} | #{points} | #{result}"
   end
