@@ -17,7 +17,9 @@ class MessageFormatter
       format_player_row(player)
     end
 
-    header + table_header + table_rows.join("\n")
+    # Wrap the table in monospace code block
+    table_content = table_header + table_rows.join("\n")
+    header + "```\n" + table_content + "\n```"
   end
 
   def self.format_changes(changes_data)

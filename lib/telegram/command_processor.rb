@@ -42,7 +42,8 @@ class CommandProcessor
         @logger.debug("Sending single message (#{formatted_table.length} chars)")
         bot.api.send_message(
           chat_id: chat_id,
-          text: formatted_table
+          text: formatted_table,
+          parse_mode: 'Markdown'
         )
       end
       
