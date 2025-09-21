@@ -17,9 +17,8 @@ class MessageFormatter
     puts "DEBUG: Column widths: #{column_widths}"
     
     # Create table header with calculated widths
-    table_header = "Bd | " + "Player Name".ljust(column_widths[:name]) + " | Pts | Result\n"
+    table_header = "Bd | " + "Player Name".ljust(column_widths[:name]) + " | Pts | R\n"
     # The dashes need to match the total width including spaces around the content
-    dashes_line = "---|" + "-" * column_widths[:name] + "--|-----|--------\n"
     puts "DEBUG: Dashes line length: #{dashes_line.length}, dashes count: #{dashes_line.count('-')}"
     table_header += dashes_line
 
@@ -103,7 +102,7 @@ class MessageFormatter
   private
 
   def self.calculate_column_widths(players)
-    return { name: 30, points: 3, result: 6 } if players.empty?
+    return { name: 22, points: 3, result: 6 } if players.empty?
     
     max_name_length = players.map { |p| (p.player_name || "").length }.max
     max_points_length = players.map { |p| (p.points || 0).to_s.length }.max
@@ -113,7 +112,7 @@ class MessageFormatter
     header_name_length = "Player Name".length
     
     {
-      name: [max_name_length, header_name_length, 10].max,  # Minimum 10 characters
+      name: [max_name_length, header_name_length, 22].max,  # Minimum 22 characters
       points: [max_points_length, 3].max,
       result: [max_result_length, 6].max
     }
@@ -121,7 +120,7 @@ class MessageFormatter
 
   def self.format_player_row_with_widths(player, column_widths)
     board = (player.board_number || "").to_s.ljust(2)
-    name = (player.player_name || "").ljust(column_widths[:name])
+    name = truncate_string(player.player_name || "", 22).ljust(column_widths[:name])
     points = (player.points || 0).to_s.ljust(column_widths[:points])
     result = format_result_with_emoji(player.result || "").ljust(column_widths[:result])
 
@@ -147,7 +146,7 @@ class MessageFormatter
 
   def self.format_player_row(player)
     board = (player.board_number || "").to_s.ljust(2)
-    name = truncate_string(player.player_name || "", 35)
+    name = truncate_string(player.player_name || "", 22)
     points = (player.points || 0).to_s.ljust(3)
     result = (player.result || "").to_s.ljust(6)
 
