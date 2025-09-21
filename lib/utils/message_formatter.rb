@@ -19,8 +19,6 @@ class MessageFormatter
     # Create table header with calculated widths
     table_header = "Bd | " + "Player Name".ljust(column_widths[:name]) + " | Pts | R\n"
     # The dashes need to match the total width including spaces around the content
-    puts "DEBUG: Dashes line length: #{dashes_line.length}, dashes count: #{dashes_line.count('-')}"
-    table_header += dashes_line
 
     table_rows = tournament_state.players.map do |player|
       format_player_row_with_widths(player, column_widths)
