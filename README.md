@@ -2,6 +2,8 @@
 
 A Ruby-based Telegram bot that monitors chess tournament results from chess-results.com and sends real-time updates to subscribed users when the tournament table is updated.
 
+![screenshot](screenshot.png)
+
 ## Features
 
 - 🔄 Monitors tournament data every 30 seconds (configurable)
