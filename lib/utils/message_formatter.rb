@@ -52,14 +52,10 @@ class MessageFormatter
         summary << "📈 #{escape_markdown(change[:message])}"
       when :result_changed
         summary << "🏆 #{escape_markdown(change[:message])}"
-      when :club_changed
-        summary << "🏢 #{escape_markdown(change[:message])}"
       when :board_changed
         summary << "🔢 #{escape_markdown(change[:message])}"
       when :player_count_changed
         summary << "👥 #{escape_markdown(change[:message])}"
-      when :tournament_name_changed
-        summary << "🏷️ #{escape_markdown(change[:message])}"
       else
         summary << "ℹ️ #{escape_markdown(change[:message])}"
       end
