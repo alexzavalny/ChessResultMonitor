@@ -86,13 +86,13 @@ class BotHandler
     @logger.info("Received message from chat #{chat_id}: #{message.text}")
 
     case text
-    when '/start'
+    when '/start', 'start'
       @command_processor.handle_start_command(message, @bot)
-    when '/help'
+    when '/help', 'help'
       @command_processor.handle_help_command(message, @bot)
-    when 'status'
+    when '/status', 'status'
       @command_processor.handle_status_command(message, @bot)
-    when 'subscribe'
+    when '/subscribe', 'subscribe'
       if monitor
         @command_processor.handle_subscribe_command(message, @bot, monitor)
       else
