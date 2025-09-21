@@ -140,7 +140,7 @@ class CommandProcessor
     help_message += "• `status` - Get the current tournament standings\n"
     help_message += "• `help` - Show this help message\n\n"
     help_message += "*About:*\n"
-    help_message += "I monitor the chess tournament every 10 seconds and notify you when the table updates with new results, new players, or any changes.\n\n"
+    help_message += "I monitor the chess tournament every #{MONITORING_INTERVAL} seconds and notify you when the table updates with new results, new players, or any changes.\n\n"
     help_message += "The tournament I'm monitoring: *#{extract_tournament_name}*"
     
     bot.api.send_message(

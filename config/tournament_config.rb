@@ -1,6 +1,6 @@
 # Tournament Configuration
 TOURNAMENT_URL = 'https://s3.chess-results.com/tnr1246747.aspx?lan=1&art=9&fed=LAT&turdet=YES&flag=30&snr=61&SNode=S0'
-MONITORING_INTERVAL = 10 # seconds
+MONITORING_INTERVAL = 15 # seconds
 REQUEST_TIMEOUT = 30 # seconds
 MAX_RETRIES = 3
 

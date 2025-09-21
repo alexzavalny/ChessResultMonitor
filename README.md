@@ -4,10 +4,11 @@ A Ruby-based Telegram bot that monitors chess tournament results from chess-resu
 
 ## Features
 
-- 🔄 Monitors tournament data every 10 seconds
+- 🔄 Monitors tournament data every 30 seconds (configurable)
 - 📊 Detects changes in player standings, scores, and results
-- 🤖 Sends notifications via Telegram bot
+- 🤖 Sends notifications via Telegram bot to subscribed users
 - 📱 Responds to `status` command for current table
+- 👥 Subscription system for managing notification recipients
 - 🛡️ Robust error handling and retry logic
 - 📝 Comprehensive logging
 
@@ -53,17 +54,27 @@ chmod +x main.rb
 
 ### Telegram Bot Commands
 
-- `/start` - Welcome message and bot introduction
-- `/help` - Show available commands
-- `status` - Get current tournament standings (just type "status")
+- `/start` or `start` - Welcome message and bot introduction
+- `/help` or `help` - Show available commands
+- `/status` or `status` - Get current tournament standings
+- `/subscribe` or `subscribe` - Subscribe to tournament updates
+- `/unsubscribe` or `unsubscribe` - Unsubscribe from tournament updates
 
 ### Automatic Monitoring
 
 The bot automatically:
-- Checks the tournament every 10 seconds
+- Checks the tournament every 30 seconds (configurable in `config/tournament_config.rb`)
 - Detects changes in player standings, scores, or results
 - Sends notifications to all subscribed users
 - Handles errors gracefully with retry logic
+
+### Subscription System
+
+Users can subscribe to receive tournament updates by sending the `subscribe` command. The bot will:
+- Add the user's chat ID to the subscriber list
+- Send confirmation of successful subscription
+- Send tournament updates whenever changes are detected
+- Allow users to unsubscribe with the `unsubscribe` command
 
 ## Configuration
 
@@ -116,9 +127,10 @@ The application monitors the following changes:
 - Players removed from the tournament
 - Changes in player scores/points
 - Changes in game results
-- Changes in player club/city information
 - Changes in board numbers
 - Changes in tournament structure
+
+When any of these changes are detected, the bot sends the complete updated tournament table to all subscribed users.
 
 ## Error Handling
 
