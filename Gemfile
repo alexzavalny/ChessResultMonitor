@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-ruby '3.1.0'
+ruby '~> 3.1.0'
 
 # Core dependencies
 gem 'telegram-bot-ruby', '~> 0.15'
