@@ -13,12 +13,12 @@ class ChessResultsScraper
     @logger.level = ::Logger::DEBUG
   end
 
-  def fetch_tournament_data
-    @logger.info("Fetching tournament data from #{TOURNAMENT_URL}")
+  def fetch_tournament_data(tournament_url = TOURNAMENT_URL)
+    @logger.info("Fetching tournament data from #{tournament_url}")
     
     retries = 0
     begin
-      response = HTTParty.get(TOURNAMENT_URL, {
+      response = HTTParty.get(tournament_url, {
         headers: HTTP_HEADERS,
         timeout: REQUEST_TIMEOUT
       })

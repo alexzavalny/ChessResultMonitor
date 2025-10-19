@@ -92,10 +92,16 @@ class BotHandler
     when '/help', 'help'
       @command_processor.handle_help_command(message, @bot)
     when '/status', 'status'
-      @command_processor.handle_status_command(message, @bot)
+      @command_processor.handle_status_command(message, @bot, monitor)
     when '/subscribe', 'subscribe'
       if monitor
         @command_processor.handle_subscribe_command(message, @bot, monitor)
+      else
+        @command_processor.handle_unknown_command(message, @bot)
+      end
+    when %r{\A/seturl(?:@\w+)?\b}, %r{\Aseturl\b}
+      if monitor
+        @command_processor.handle_set_url_command(message, @bot, monitor)
       else
         @command_processor.handle_unknown_command(message, @bot)
       end

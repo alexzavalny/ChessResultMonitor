@@ -1,4 +1,6 @@
 require 'set'
+require 'uri'
+require 'fileutils'
 require_relative 'scraper/chess_results_scraper'
 require_relative 'utils/change_detector'
 require_relative 'utils/message_formatter'
@@ -21,6 +23,7 @@ class ChessResultMonitor
     @running = false
     @subscribers = Set.new
     @paused = false
+    @tournament_url = TOURNAMENT_URL
     
     # Ensure data directory exists
     FileUtils.mkdir_p('data') unless Dir.exist?('data')
@@ -67,7 +70,7 @@ class ChessResultMonitor
     
     begin
       # Fetch current tournament data
-      new_state = @scraper.fetch_tournament_data
+      new_state = @scraper.fetch_tournament_data(@tournament_url)
       
       if new_state.nil? || new_state.empty?
         @logger.warn("No tournament data received")
@@ -124,6 +127,33 @@ class ChessResultMonitor
 
   def paused?
     @paused
+  end
+
+  def current_tournament_url
+    @tournament_url
+  end
+
+  def update_tournament_url(new_url)
+    normalized_url = new_url.to_s.strip
+    raise ArgumentError, "URL can't be empty" if normalized_url.empty?
+
+    parsed = URI.parse(normalized_url)
+    unless parsed.is_a?(URI::HTTP) && parsed.host
+      raise ArgumentError, "Provide a valid http(s) URL"
+    end
+
+    if normalized_url == @tournament_url
+      @logger.info("Tournament URL already set to #{normalized_url}")
+      return false
+    end
+
+    @tournament_url = normalized_url
+    @current_state = nil
+    FileUtils.rm_f(@state_file) if File.exist?(@state_file)
+    @logger.info("Tournament URL updated to #{@tournament_url}")
+    true
+  rescue URI::InvalidURIError => e
+    raise ArgumentError, e.message
   end
 
   private

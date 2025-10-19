@@ -1,3 +1,4 @@
+require 'uri'
 require_relative '../scraper/chess_results_scraper'
 require_relative '../utils/message_formatter'
 require_relative '../../config/tournament_config'
@@ -10,7 +11,7 @@ class CommandProcessor
     @scraper = ChessResultsScraper.new
   end
 
-  def handle_status_command(message, bot)
+  def handle_status_command(message, bot, monitor = nil)
     chat_id = message.chat.id
     
     begin
@@ -23,7 +24,8 @@ class CommandProcessor
       )
       
       # Fetch current tournament data
-      tournament_state = @scraper.fetch_tournament_data
+      tournament_url = monitor&.current_tournament_url || TOURNAMENT_URL
+      tournament_state = @scraper.fetch_tournament_data(tournament_url)
       
       # Format and send the table
       formatted_table = MessageFormatter.format_table(tournament_state)
@@ -80,6 +82,7 @@ class CommandProcessor
     welcome_message += "• `status` - Get current tournament table\n"
     welcome_message += "• `pause` - Temporarily stop monitoring\n"
     welcome_message += "• `resume` - Resume monitoring\n"
+    welcome_message += "• `seturl <link>` - Override the monitored tournament\n"
     welcome_message += "• `help` - Show this help message\n\n"
     welcome_message += "I'll automatically send you updates every time the tournament table changes!"
     
@@ -107,6 +110,7 @@ class CommandProcessor
       subscribe_message += "• Any other updates\n\n"
       subscribe_message += "Use `status` to see the current table anytime!\n"
       subscribe_message += "Need a break? Send `pause`, then `resume` when you're ready."
+      subscribe_message += "\nWant to track a different event? Use `seturl <link>`."
       
       bot.api.send_message(
         chat_id: chat_id,
@@ -131,6 +135,57 @@ class CommandProcessor
         text: "❌ *Subscription Failed*\n\nError: #{error_msg}\n\nBacktrace:\n#{backtrace_msg}"
       )
       raise e  # Re-raise to kill the application for debugging
+    end
+  end
+
+  def handle_set_url_command(message, bot, monitor)
+    chat_id = message.chat.id
+
+    unless monitor
+      bot.api.send_message(
+        chat_id: chat_id,
+        text: "⚠️ Unable to update the tournament link right now."
+      )
+      return
+    end
+
+    raw_text = message.text.to_s.strip
+    _, url = raw_text.split(/\s+/, 2)
+
+    if url.nil? || url.empty?
+      bot.api.send_message(
+        chat_id: chat_id,
+        text: "ℹ️ Usage: /seturl https://example.com/tournament\nThis overrides the monitored tournament."
+      )
+      return
+    end
+
+    begin
+      updated = monitor.update_tournament_url(url)
+      if updated
+        bot.api.send_message(
+          chat_id: chat_id,
+          text: "🔗 Tournament link updated.\nI'll start monitoring the new tournament shortly."
+        )
+      else
+        bot.api.send_message(
+          chat_id: chat_id,
+          text: "ℹ️ That link is already being monitored."
+        )
+      end
+
+      @logger.info("Set URL command processed for chat #{chat_id}: #{url}")
+    rescue ArgumentError => e
+      bot.api.send_message(
+        chat_id: chat_id,
+        text: "❌ Invalid URL: #{e.message}"
+      )
+    rescue StandardError => e
+      @logger.error("Error in set url command: #{e.message}")
+      bot.api.send_message(
+        chat_id: chat_id,
+        text: MessageFormatter.format_error_message(:unknown_error, e.message)
+      )
     end
   end
 
@@ -189,6 +244,7 @@ class CommandProcessor
     help_message += "• `status` - Get the current tournament standings\n"
     help_message += "• `pause` - Pause tournament monitoring\n"
     help_message += "• `resume` - Resume monitoring after a pause\n"
+    help_message += "• `seturl <link>` - Point the monitor at a different tournament\n"
     help_message += "• `help` - Show this help message\n\n"
     help_message += "*About:*\n"
     help_message += "I monitor the chess tournament every #{MONITORING_INTERVAL} seconds and notify you when the table updates with new results, new players, or any changes.\n\n"
@@ -211,6 +267,7 @@ class CommandProcessor
     unknown_message += "• `status` - Get current tournament table\n"
     unknown_message += "• `pause` - Pause tournament monitoring\n"
     unknown_message += "• `resume` - Resume monitoring after a pause\n"
+    unknown_message += "• `seturl <link>` - Override the monitored tournament\n"
     unknown_message += "• `help` - Show help information\n\n"
     unknown_message += "Just type `status` to see the current tournament standings!"
     
