@@ -71,6 +71,18 @@ class MessageFormatter
     summary.join("\n")
   end
 
+  def self.format_game_info(tournament_state)
+    return nil if tournament_state.nil? || tournament_state.empty?
+    return nil if tournament_state.players.empty?
+
+    game_number = tournament_state.players.map { |p| p.round_number.to_i }.max
+    table_number = tournament_state.players.last&.board_number&.to_i
+
+    return nil if game_number.nil? || table_number.nil?
+
+    "🎮 Game #{game_number} - table number #{table_number}"
+  end
+
   def self.format_status_response(tournament_state)
     if tournament_state.nil? || tournament_state.empty?
       return "❌ *Status: No Data*\n\nUnable to fetch tournament data. Please try again later."

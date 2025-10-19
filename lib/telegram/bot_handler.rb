@@ -40,7 +40,8 @@ class BotHandler
       begin
         @bot.api.send_message(
           chat_id: chat_id,
-          text: message_text
+          text: message_text,
+          parse_mode: 'Markdown'
         )
         @logger.debug("Notification sent to chat #{chat_id}")
       rescue StandardError => e
@@ -95,6 +96,18 @@ class BotHandler
     when '/subscribe', 'subscribe'
       if monitor
         @command_processor.handle_subscribe_command(message, @bot, monitor)
+      else
+        @command_processor.handle_unknown_command(message, @bot)
+      end
+    when '/pause', 'pause'
+      if monitor
+        @command_processor.handle_pause_command(message, @bot, monitor)
+      else
+        @command_processor.handle_unknown_command(message, @bot)
+      end
+    when '/resume', 'resume'
+      if monitor
+        @command_processor.handle_resume_command(message, @bot, monitor)
       else
         @command_processor.handle_unknown_command(message, @bot)
       end

@@ -78,6 +78,8 @@ class CommandProcessor
     welcome_message += "*Available commands:*\n"
     welcome_message += "• `subscribe` - Subscribe to tournament updates\n"
     welcome_message += "• `status` - Get current tournament table\n"
+    welcome_message += "• `pause` - Temporarily stop monitoring\n"
+    welcome_message += "• `resume` - Resume monitoring\n"
     welcome_message += "• `help` - Show this help message\n\n"
     welcome_message += "I'll automatically send you updates every time the tournament table changes!"
     
@@ -103,7 +105,8 @@ class CommandProcessor
       subscribe_message += "• New results\n"
       subscribe_message += "• New players\n"
       subscribe_message += "• Any other updates\n\n"
-      subscribe_message += "Use `status` to see the current table anytime!"
+      subscribe_message += "Use `status` to see the current table anytime!\n"
+      subscribe_message += "Need a break? Send `pause`, then `resume` when you're ready."
       
       bot.api.send_message(
         chat_id: chat_id,
@@ -131,6 +134,52 @@ class CommandProcessor
     end
   end
 
+  def handle_pause_command(message, bot, monitor)
+    chat_id = message.chat.id
+
+    if monitor.pause_monitoring
+      response = "⏸ Monitoring paused. I'll stop checking for updates until you send /resume."
+    else
+      response = "⏸ Monitoring is already paused."
+    end
+
+    bot.api.send_message(
+      chat_id: chat_id,
+      text: response
+    )
+
+    @logger.info("Pause command processed for chat #{chat_id}")
+  rescue StandardError => e
+    @logger.error("Error in pause command: #{e.message}")
+    bot.api.send_message(
+      chat_id: chat_id,
+      text: MessageFormatter.format_error_message(:unknown_error, e.message)
+    )
+  end
+
+  def handle_resume_command(message, bot, monitor)
+    chat_id = message.chat.id
+
+    if monitor.resume_monitoring
+      response = "▶️ Monitoring resumed. I'll keep you posted on new results."
+    else
+      response = "▶️ Monitoring is already running."
+    end
+
+    bot.api.send_message(
+      chat_id: chat_id,
+      text: response
+    )
+
+    @logger.info("Resume command processed for chat #{chat_id}")
+  rescue StandardError => e
+    @logger.error("Error in resume command: #{e.message}")
+    bot.api.send_message(
+      chat_id: chat_id,
+      text: MessageFormatter.format_error_message(:unknown_error, e.message)
+    )
+  end
+
   def handle_help_command(message, bot)
     chat_id = message.chat.id
     
@@ -138,6 +187,8 @@ class CommandProcessor
     help_message += "*Commands:*\n"
     help_message += "• `subscribe` - Subscribe to tournament updates\n"
     help_message += "• `status` - Get the current tournament standings\n"
+    help_message += "• `pause` - Pause tournament monitoring\n"
+    help_message += "• `resume` - Resume monitoring after a pause\n"
     help_message += "• `help` - Show this help message\n\n"
     help_message += "*About:*\n"
     help_message += "I monitor the chess tournament every #{MONITORING_INTERVAL} seconds and notify you when the table updates with new results, new players, or any changes.\n\n"
@@ -158,6 +209,8 @@ class CommandProcessor
     unknown_message += "I didn't understand that. Here are the available commands:\n\n"
     unknown_message += "• `subscribe` - Subscribe to tournament updates\n"
     unknown_message += "• `status` - Get current tournament table\n"
+    unknown_message += "• `pause` - Pause tournament monitoring\n"
+    unknown_message += "• `resume` - Resume monitoring after a pause\n"
     unknown_message += "• `help` - Show help information\n\n"
     unknown_message += "Just type `status` to see the current tournament standings!"
     
@@ -172,47 +225,21 @@ class CommandProcessor
   private
 
   def send_game_info_message(bot, chat_id, tournament_state)
-    return if tournament_state.nil? || tournament_state.empty?
-    
-    # Extract game number and table number from tournament data
-    game_number = extract_game_number(tournament_state)
-    table_number = extract_table_number(tournament_state)
-    
-    if game_number && table_number
-      game_info = "🎮 Game #{game_number} - table number #{table_number}"
-      
-      bot.api.send_message(
-        chat_id: chat_id,
-        text: game_info
-      )
-      
-      @logger.info("Sent game info: #{game_info} to chat #{chat_id}")
-    else
+    game_info = MessageFormatter.format_game_info(tournament_state)
+    unless game_info
       @logger.debug("Could not extract game info from tournament state")
+      return
     end
+
+    bot.api.send_message(
+      chat_id: chat_id,
+      text: game_info
+    )
+
+    @logger.info("Sent game info: #{game_info} to chat #{chat_id}")
   rescue StandardError => e
     @logger.error("Error sending game info message: #{e.message}")
     # Don't raise here, just log the error
-  end
-
-  def extract_game_number(tournament_state)
-    # Extract game number from the highest round number in the tournament data
-    return nil if tournament_state.players.empty?
-    
-    # Get the highest round number from all players
-    max_round = tournament_state.players.map { |p| p.round_number.to_i }.max
-    max_round
-  end
-
-  def extract_table_number(tournament_state)
-    # Extract table number from the last player's board number
-    return nil if tournament_state.players.empty?
-    
-    # Get the board number from the last player in the list
-    last_player = tournament_state.players.last
-    return nil unless last_player
-    
-    last_player.board_number.to_i
   end
 
   def send_long_message(bot, chat_id, long_text)

@@ -8,6 +8,8 @@ require_relative '../config/tournament_config'
 
 # Main monitoring application
 class ChessResultMonitor
+  PAUSED_POLL_INTERVAL = 5
+
   def initialize
     @logger = ::Logger.new(STDOUT)
     @logger.level = ::Logger::INFO
@@ -18,6 +20,7 @@ class ChessResultMonitor
     @state_file = 'data/state_cache.json'
     @running = false
     @subscribers = Set.new
+    @paused = false
     
     # Ensure data directory exists
     FileUtils.mkdir_p('data') unless Dir.exist?('data')
@@ -55,6 +58,11 @@ class ChessResultMonitor
   end
 
   def check_for_updates
+    if paused?
+      @logger.debug("Skipping update check because monitoring is paused")
+      return
+    end
+
     @logger.debug("Checking for tournament updates...")
     
     begin
@@ -92,6 +100,32 @@ class ChessResultMonitor
     @logger.info("Added subscriber: #{chat_id} (total: #{@subscribers.size})")
   end
 
+  def pause_monitoring
+    if paused?
+      @logger.info("Monitoring already paused")
+      return false
+    end
+
+    @paused = true
+    @logger.info("Monitoring paused")
+    true
+  end
+
+  def resume_monitoring
+    unless paused?
+      @logger.info("Monitoring already running")
+      return false
+    end
+
+    @paused = false
+    @logger.info("Monitoring resumed")
+    true
+  end
+
+  def paused?
+    @paused
+  end
+
   private
 
   def start_monitoring_loop
@@ -99,6 +133,12 @@ class ChessResultMonitor
     
     while @running
       begin
+        if paused?
+          @logger.debug("Monitoring paused; sleeping before rechecking state")
+          sleep([MONITORING_INTERVAL, PAUSED_POLL_INTERVAL].min)
+          next
+        end
+
         check_for_updates
         sleep(MONITORING_INTERVAL)
       rescue Interrupt
@@ -124,13 +164,21 @@ class ChessResultMonitor
     changes_message = MessageFormatter.format_changes({ has_changes: true, changes: changes })
     
     # Send notification to all subscribers
-    @bot_handler.send_notification_to_subscribers(changes_message, @subscribers)
+    #@bot_handler.send_notification_to_subscribers(changes_message, @subscribers)
     
     # If significant changes, also send the full table
     if significant_changes
       @logger.info("Significant changes detected, sending full table to subscribers")
       full_table = MessageFormatter.format_table(new_state)
       @bot_handler.send_notification_to_subscribers(full_table, @subscribers)
+
+      game_info = MessageFormatter.format_game_info(new_state)
+      if game_info
+        @logger.info("Sending game info to subscribers: #{game_info}")
+        @bot_handler.send_notification_to_subscribers(game_info, @subscribers)
+      else
+        @logger.debug("Game info unavailable for the current state")
+      end
     end
     
     # Log the changes
