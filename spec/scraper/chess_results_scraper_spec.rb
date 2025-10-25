@@ -37,7 +37,7 @@ RSpec.describe ChessResultsScraper do
                 <td>LAT</td>
                 <td>Rīgas Šaha skola/ D.Matisone</td>
                 <td>6</td>
-                <td>□ 0</td>
+                <td>- 0</td>
               </tr>
               <tr>
                 <td>2</td>
@@ -48,7 +48,7 @@ RSpec.describe ChessResultsScraper do
                 <td>LAT</td>
                 <td>Mifan Chess/ A.Jazdanovs</td>
                 <td>5</td>
-                <td>■ 0</td>
+                <td>- 0</td>
               </tr>
             </table>
           </body>
@@ -189,6 +189,63 @@ RSpec.describe ChessResultsScraper do
     end
   end
 
+  describe 'result prefix stripping' do
+    it 'strips "- " prefix from results' do
+      # Create a simple test that directly tests the parsing logic
+      html_with_prefix_results = <<~HTML
+        <html>
+          <head><title>ChessMania Tournament</title></head>
+          <body>
+            <table>
+              <tr>
+                <th>Rd.</th>
+                <th>Bo.</th>
+                <th>SNo</th>
+                <th>Name</th>
+                <th>Rtg</th>
+                <th>FED</th>
+                <th>Club/City</th>
+                <th>Pts.</th>
+                <th>Res.</th>
+              </tr>
+              <tr>
+                <td>1</td>
+                <td>6</td>
+                <td>6</td>
+                <td>Bodaks, Leonards</td>
+                <td>1496</td>
+                <td>LAT</td>
+                <td>Rīgas Šaha skola/ D.Matisone</td>
+                <td>6</td>
+                <td>- 0</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>6</td>
+                <td>11</td>
+                <td>Malcevs, Timofejs</td>
+                <td>0</td>
+                <td>LAT</td>
+                <td>Mifan Chess/ A.Jazdanovs</td>
+                <td>5</td>
+                <td>- 1</td>
+              </tr>
+            </table>
+          </body>
+        </html>
+      HTML
+
+      # Parse the HTML directly without HTTP request
+      doc = Nokogiri::HTML(html_with_prefix_results)
+      table = scraper.send(:find_results_table, doc)
+      players = scraper.send(:parse_table_rows, table)
+      
+      expect(players.size).to eq(2)
+      expect(players.first.result).to eq('0')
+      expect(players.last.result).to eq('1')
+    end
+  end
+
   describe 'dynamic column mapping integration' do
     let(:html_with_reordered_columns) do
       <<~HTML
@@ -210,7 +267,7 @@ RSpec.describe ChessResultsScraper do
                 <td>6</td>
                 <td>1</td>
                 <td>Rīgas Šaha skola/ D.Matisone</td>
-                <td>□ 0</td>
+                <td>- 0</td>
               </tr>
             </table>
           </body>

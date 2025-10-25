@@ -238,6 +238,9 @@ class ChessResultsScraper
     result = extract_cell_value(cells, column_mapping[:result])
     round_number = extract_cell_value(cells, column_mapping[:round])
     
+    # Strip "- " prefix from result if present
+    result = result&.gsub(/^-\s*/, '') if result
+    
     # Parse points
     points = parse_points(points_text)
     
