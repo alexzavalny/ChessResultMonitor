@@ -1,5 +1,6 @@
 require 'httparty'
 require 'nokogiri'
+require 'logger'
 require_relative '../models/player'
 require_relative '../models/tournament_state'
 require_relative '../../config/tournament_config'
@@ -107,16 +108,28 @@ class ChessResultsScraper
     @logger.debug("Found #{tables.length} tables in the document")
     
     tables.each_with_index do |table, index|
-      headers = table.css('th, td').map(&:text).map(&:strip)
+      # Get the first row to check for headers
+      first_row = table.css('tr').first
+      next if first_row.nil?
+      
+      headers = first_row.css('th, td').map(&:text).map(&:strip)
       @logger.debug("Table #{index + 1} headers: #{headers.first(10).join(', ')}")
       
+      # Skip tables with empty or very few headers
+      next if headers.empty? || headers.all?(&:empty?) || headers.length < 5
+      
+      # Look for a table that has the specific headers we expect in a clean format
       # Check if this looks like a results table with the specific headers we expect
       if headers.any? { |h| h.include?('Rd.') } && 
          headers.any? { |h| h.include?('Bo.') } && 
          headers.any? { |h| h.include?('Name') } && 
          headers.any? { |h| h.include?('Pts.') }
-        @logger.debug("Found results table at index #{index + 1}")
-        return table
+        
+        # Additional check: make sure the headers are not too long (indicating metadata)
+        if headers.length <= 15 && headers.none? { |h| h.length > 50 }
+          @logger.debug("Found results table at index #{index + 1}")
+          return table
+        end
       end
     end
     
@@ -124,8 +137,51 @@ class ChessResultsScraper
     nil
   end
 
+  def create_column_mapping(table)
+    # Extract header row to create dynamic column mapping
+    header_row = table.css('tr').first
+    return {} if header_row.nil?
+    
+    headers = header_row.css('th, td').map(&:text).map(&:strip)
+    @logger.debug("Creating column mapping from headers: #{headers.join(', ')}")
+    
+    column_mapping = {}
+    
+    headers.each_with_index do |header, index|
+      header_lower = header.downcase
+      
+      # Map various possible header names to our standard field names
+      case header_lower
+      when /^rd\.?$/, /round/
+        column_mapping[:round] = index
+      when /^bo\.?$/, /board/
+        column_mapping[:board] = index
+      when /^sno/, /starting.*number/, /no\.?$/
+        column_mapping[:starting_number] = index
+      when /^name$/, /player/
+        column_mapping[:name] = index
+      when /^rtg/, /rating/
+        column_mapping[:rating] = index
+      when /^fed/, /federation/, /country/
+        column_mapping[:federation] = index
+      when /^club/, /city/, /club\/city/
+        column_mapping[:club_city] = index
+      when /^pts\.?$/, /points/, /score/
+        column_mapping[:points] = index
+      when /^res\.?$/, /result/
+        column_mapping[:result] = index
+      end
+    end
+    
+    @logger.debug("Column mapping created: #{column_mapping}")
+    column_mapping
+  end
+
   def parse_table_rows(table)
     players = []
+    
+    # Create column mapping from table headers
+    column_mapping = create_column_mapping(table)
     
     # Skip header row and parse data rows
     rows = table.css('tr')[1..-1] || []
@@ -144,7 +200,7 @@ class ChessResultsScraper
         next
       end
       
-      # Check if this looks like a player row (should have numeric first few cells)
+      # Check if this looks like a player row (should have numeric first cell for round number)
       first_cell = cells[0]&.text&.strip
       if first_cell.nil? || first_cell.empty? || !first_cell.match?(/^\d+$/)
         @logger.debug("Skipped row #{index + 1} - doesn't start with round number")
@@ -152,7 +208,7 @@ class ChessResultsScraper
       end
       
       begin
-        player = parse_player_row(cells, index + 1)
+        player = parse_player_row(cells, index + 1, column_mapping)
         if player
           players << player
           @logger.debug("Successfully parsed player: #{player.player_name}")
@@ -170,35 +226,20 @@ class ChessResultsScraper
     players
   end
 
-  def parse_player_row(cells, row_number)
-    # Actual table structure based on the image:
-    # [0] - Rd. (Round)
-    # [1] - Bo. (Board)
-    # [2] - SNo (Starting Number)
-    # [3] - (Unnamed column with "IV")
-    # [4] - Name
-    # [5] - Rtg (Rating)
-    # [6] - Club/City
-    # [7] - Pts. (Points)
-    # [8] - Res. (Result)
-    
+  def parse_player_row(cells, row_number, column_mapping)
+    # Use dynamic column mapping instead of hardcoded indices
     return nil if cells.size < 6
     
-    # Extract board number (Bo. column - index 1)
-    board_number = cells[1]&.text&.strip
+    # Extract data using column mapping
+    board_number = extract_cell_value(cells, column_mapping[:board])
+    player_name = extract_cell_value(cells, column_mapping[:name])
+    club_city = extract_cell_value(cells, column_mapping[:club_city])
+    points_text = extract_cell_value(cells, column_mapping[:points])
+    result = extract_cell_value(cells, column_mapping[:result])
+    round_number = extract_cell_value(cells, column_mapping[:round])
     
-    # Extract player name (Name column - index 4)
-    player_name = cells[4]&.text&.strip
-    
-    # Extract club/city (Club/City column - index 6)
-    club_city = cells[6]&.text&.strip
-    
-    # Extract points (Pts. column - index 7)
-    points_text = cells[7]&.text&.strip
+    # Parse points
     points = parse_points(points_text)
-    
-    # Extract result (Res. column - index 8)
-    result = cells[8]&.text&.strip
     
     # Skip if essential data is missing
     return nil if player_name.nil? || player_name.empty?
@@ -212,8 +253,14 @@ class ChessResultsScraper
       points: points,
       result: result,
       opponent: nil, # Not available in this table format
-      round_number: cells[0]&.text&.strip&.to_i # Round number from first column
+      round_number: round_number&.to_i
     )
+  end
+
+  def extract_cell_value(cells, column_index)
+    return nil if column_index.nil? || column_index >= cells.length
+    
+    cells[column_index]&.text&.strip
   end
 
   def parse_points(points_text)
